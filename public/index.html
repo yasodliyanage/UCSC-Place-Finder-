@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UCSC Place Finder</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Link to our CSS file -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Prevent FOUC for Dark Mode -->
+    <script>
+        (function() {
+            const currentTheme = localStorage.getItem('theme');
+            const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+            if (currentTheme === 'dark' || (!currentTheme && prefersDarkScheme.matches)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+    </script>
+</head>
+<body>
+    <header class="hero">
+        <button id="darkModeToggle" class="dark-mode-toggle" aria-label="Toggle Dark Mode">
+            <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+            <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            <span class="toggle-text light-text">Light</span>
+            <span class="toggle-text dark-text" style="display: none;">Dark</span>
+        </button>
+        <div class="container hero-content">
+            <img src="logo.jpg" alt="UCSC Logo" class="hero-logo" id="ucscLogo" onerror="this.src='https://placehold.co/120x120?text=UCSC+Logo'">
+            <div class="hero-text">
+                <h1>UCSC Place Finder</h1>
+                <p>Navigate the University of Colombo School of Computing with ease. Find lecture halls, labs, offices, and more.</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Controls section for search and filtering -->
+        <section class="controls">
+            <div class="search-box">
+                <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" id="searchInput" placeholder="Search for a place (e.g., S104, Library)...">
+            </div>
+            <div class="custom-select-wrapper" id="customSelectWrapper">
+                <div class="custom-select-trigger" id="customSelectTrigger">
+                    <span id="customSelectLabel">All Categories</span>
+                    <svg class="select-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+                <div class="custom-select-options" id="customSelectOptions">
+                    <div class="custom-option selected" data-value="All">
+                        <svg class="check-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>All Categories</span>
+                    </div>
+                    <div class="custom-option" data-value="Lecture Hall">
+                        <svg class="check-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Lecture Hall</span>
+                    </div>
+                    <div class="custom-option" data-value="Lab">
+                        <svg class="check-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Lab</span>
+                    </div>
+                    <div class="custom-option" data-value="Office">
+                        <svg class="check-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Office</span>
+                    </div>
+                    <div class="custom-option" data-value="Library">
+                        <svg class="check-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Library</span>
+                    </div>
+                    <div class="custom-option" data-value="Canteen">
+                        <svg class="check-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Canteen</span>
+                    </div>
+                    <div class="custom-option" data-value="Other">
+                        <svg class="check-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Other</span>
+                    </div>
+                </div>
+                <input type="hidden" id="categoryFilter" value="All">
+            </div>
+            <button id="favoritesToggle" class="favorites-toggle" aria-label="Toggle Favorites">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                <span>Favorites</span>
+            </button>
+        </section>
+
+        <!-- Results section where cards will be displayed -->
+        <section id="results" class="results-grid">
+            <!-- Place cards will be dynamically inserted here by JavaScript -->
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading places...</p>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 UCSC Place Finder</p>
+        </div>
+    </footer>
+
+    <!-- Modal for Place Details -->
+    <div id="placeModal" class="modal-overlay">
+        <div class="modal-content">
+            <button id="closeModal" class="close-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <div class="modal-scrollable">
+                <div class="modal-header">
+                    <h2 id="modalTitle">Place Name</h2>
+                    <div class="place-meta" id="modalMeta">
+                        <!-- Badges -->
+                    </div>
+                </div>
+                
+                <div class="modal-images">
+                    <div class="image-container">
+                        <h3>Location Photo</h3>
+                        <img id="modalImage" src="" alt="Place Photo">
+                    </div>
+                    <div class="image-container">
+                        <h3>Floor Plan</h3>
+                        <img id="modalFloorPlan" src="" alt="Floor Plan">
+                    </div>
+                </div>
+
+                <div class="modal-details">
+                    <div class="detail-section">
+                        <h3>Description</h3>
+                        <p id="modalDescription">Description goes here.</p>
+                    </div>
+                    <div class="detail-section">
+                        <h3>How to get there</h3>
+                        <p id="modalDirections">Directions go here.</p>
+                    </div>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                            <div>
+                                <strong>Operating Hours</strong>
+                                <p id="modalHours">Mon-Fri: 8AM - 5PM</p>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                            <div>
+                                <strong>Accessibility</strong>
+                                <p id="modalAccessibility">Elevator access available</p>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                            <div>
+                                <strong>Contact</strong>
+                                <p id="modalContact">Not available</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Link to our Vanilla JavaScript file -->
+    <script src="app.js"></script>
+</body>
+</html>

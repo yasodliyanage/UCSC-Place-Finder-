@@ -1,0 +1,5 @@
+{
+  "name": "UCSC Place Finder",
+  "description": "A web application to help UCSC students find lecture halls, labs, offices, and other important places on campus.",
+  "requestFramePermissions": []
+}
