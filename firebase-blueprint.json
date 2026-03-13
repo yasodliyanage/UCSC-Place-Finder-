@@ -1,0 +1,41 @@
+{
+  "entities": {
+    "Location": {
+      "title": "Location",
+      "description": "A place within the UCSC campus.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "The name of the location." },
+        "building": { "type": "string", "description": "The building where the location is situated." },
+        "floor": { "type": "string", "description": "The floor number or name." },
+        "category": { "type": "string", "description": "The type of location (e.g., Lab, Office, Lecture Hall)." },
+        "description": { "type": "string", "description": "A brief description of the location." },
+        "directions": { "type": "string", "description": "Step-by-step directions to find the location." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the location was added." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "When the location was last updated." }
+      },
+      "required": ["name", "building", "floor", "category", "description", "directions"]
+    },
+    "User": {
+      "title": "User",
+      "description": "A user of the system, potentially an admin.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email", "description": "The user's email address." },
+        "role": { "type": "string", "enum": ["admin", "user"], "description": "The user's role in the system." },
+        "uid": { "type": "string", "description": "The unique Firebase Auth UID." }
+      },
+      "required": ["email", "role", "uid"]
+    }
+  },
+  "firestore": {
+    "/locations/{locationId}": {
+      "schema": "Location",
+      "description": "Collection of all campus locations."
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Collection of user profiles and roles."
+    }
+  }
+}

@@ -194,6 +194,41 @@ body {
     line-height: 1.5;
 }
 
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    font-family: var(--font-sans);
+    border-radius: 100px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: var(--select-bg);
+    color: var(--text-main);
+    text-decoration: none;
+}
+
+.btn:hover {
+    background-color: var(--select-hover-bg);
+}
+
+.btn-primary {
+    background-color: var(--primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+}
+
+.w-full {
+    width: 100%;
+}
+
 /* Controls (Search & Filter) */
 .controls {
     display: flex;

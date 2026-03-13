@@ -13,6 +13,11 @@ const PORT = 3000;
 // Serve static files from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Route for admin dashboard
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
 // API route to get places data
 app.get('/api/places', (req, res) => {
   try {

@@ -1,0 +1,82 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: locations
+    // Document ID: auto-generated
+    // Fields:
+    //   - name: string (required, 1-100 chars)
+    //   - building: string (required, 1-100 chars)
+    //   - floor: string (required, 1-100 chars)
+    //   - category: string (required, 1-50 chars)
+    //   - description: string (required, 1-1000 chars)
+    //   - directions: string (required, 1-1000 chars)
+    //   - createdAt: timestamp (optional)
+    //   - updatedAt: timestamp (optional)
+    //
+    // Collection: users
+    // Document ID: uid
+    // Fields:
+    //   - email: string (required, email format)
+    //   - role: string (required, ['admin', 'user'])
+    //   - uid: string (required, matches document ID)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        (request.auth.token.email == "layanyasod@gmail.com" && request.auth.token.email_verified == true) ||
+        request.auth.token.email == "admin@ucsc.edu"
+      );
+    }
+
+    function isValidLocation(data) {
+      return data.keys().hasAll(['name', 'building', 'floor', 'category', 'description', 'directions']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.building is string && data.building.size() > 0 && data.building.size() <= 100 &&
+             data.floor is string && data.floor.size() > 0 && data.floor.size() <= 100 &&
+             data.category is string && data.category.size() > 0 && data.category.size() <= 50 &&
+             data.description is string && data.description.size() > 0 && data.description.size() <= 1000 &&
+             data.directions is string && data.directions.size() > 0 && data.directions.size() <= 1000;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'role', 'uid']) &&
+             data.email is string && data.email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$") &&
+             data.role in ['admin', 'user'] &&
+             data.uid is string && data.uid == request.auth.uid;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /locations/{locationId} {
+      allow read: if true; // Publicly readable
+      allow create, update: if isAdmin() && isValidLocation(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == 'user';
+      allow update: if (isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == resource.data.role) || isAdmin();
+    }
+  }
+}

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - UCSC Place Finder</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .admin-container {
+            padding: 40px 0;
+            min-height: 80vh;
+        }
+        .login-card {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 40px;
+            background: var(--card-bg);
+            border-radius: 24px;
+            box-shadow: var(--shadow-md);
+            text-align: center;
+        }
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .dashboard-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        @media (max-width: 600px) {
+            .dashboard-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .dashboard-actions {
+                width: 100%;
+            }
+            .dashboard-actions .btn {
+                flex: 1;
+                min-width: 120px;
+            }
+        }
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            font-family: inherit;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        .modal-content {
+            background: var(--card-bg);
+            padding: 32px;
+            border-radius: 24px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .place-item {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid var(--border-color);
+        }
+        .place-info h3 {
+            margin: 0 0 4px 0;
+        }
+        .place-info p {
+            margin: 0;
+            font-size: 0.85rem;
+            opacity: 0.7;
+        }
+        .actions {
+            display: flex;
+            gap: 12px;
+        }
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+        }
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        #adminContent {
+            display: none;
+        }
+        #loginSection {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <header class="hero" style="padding: 40px 0;">
+        <div class="container hero-content">
+            <div class="hero-text">
+                <h1>Admin Dashboard</h1>
+                <p>Manage campus locations and information.</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="container admin-container">
+        <div id="loginSection">
+            <div class="login-card">
+                <img src="logo.jpg" alt="Logo" style="width: 80px; margin-bottom: 24px;">
+                <h2>Admin Login</h2>
+                <p style="margin-bottom: 32px; opacity: 0.7;">Sign in to access the dashboard.</p>
+                <form id="adminLoginForm">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-full">Login</button>
+                </form>
+                <p id="loginError" style="color: #ef4444; margin-top: 16px; display: none;"></p>
+            </div>
+        </div>
+
+        <div id="adminContent">
+            <div class="dashboard-header">
+                <h2>Manage Locations</h2>
+                <div class="dashboard-actions">
+                    <button id="seedBtn" class="btn" style="display: none; background: #8b5cf6; color: white;">Seed Data from JSON</button>
+                    <button id="addBtn" class="btn btn-primary">Add New Location</button>
+                    <button id="logoutBtn" class="btn">Logout</button>
+                </div>
+            </div>
+
+            <div id="placesList">
+                <!-- Places will be loaded here -->
+                <div class="loading">Loading locations...</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add/Edit Modal -->
+    <div id="placeModal" class="modal">
+        <div class="modal-content">
+            <h2 id="modalTitle">Add New Location</h2>
+            <form id="placeForm">
+                <input type="hidden" id="placeId">
+                <div class="form-group">
+                    <label for="name">Location Name</label>
+                    <input type="text" id="name" required placeholder="e.g., Lab A">
+                </div>
+                <div class="form-group">
+                    <label for="building">Building</label>
+                    <input type="text" id="building" required placeholder="e.g., Main Building">
+                </div>
+                <div class="form-group">
+                    <label for="floor">Floor</label>
+                    <input type="text" id="floor" required placeholder="e.g., 1st Floor">
+                </div>
+                <div class="form-group">
+                    <label for="category">Category</label>
+                    <select id="category" required>
+                        <option value="Lab">Lab</option>
+                        <option value="Office">Office</option>
+                        <option value="Lecture Hall">Lecture Hall</option>
+                        <option value="Library">Library</option>
+                        <option value="Canteen">Canteen</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" rows="3" required placeholder="Briefly describe the place..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="directions">Directions</label>
+                    <textarea id="directions" rows="3" required placeholder="How to get there?"></textarea>
+                </div>
+                <div class="actions" style="justify-content: flex-end; margin-top: 32px;">
+                    <button type="button" id="cancelBtn" class="btn">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Location</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module" src="admin.js"></script>
+</body>
+</html>

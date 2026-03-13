@@ -1,3 +1,7 @@
+import { 
+    db, collection, query, orderBy, onSnapshot, handleFirestoreError, OperationType 
+} from './firebase-init.js';
+
 // Global variable to store all places fetched from the server
 let allPlaces = [];
 let favorites = JSON.parse(localStorage.getItem('ucsc_favorites')) || [];
@@ -141,36 +145,41 @@ function openModal(place) {
 
 /**
  * Initialize the application
- * Fetches data from the API and sets up event listeners
+ * Fetches data from Firestore and sets up real-time listeners
  */
 async function init() {
     try {
-        // Fetch places data from the local API route
-        const response = await fetch('/api/places');
-        if (!response.ok) {
-            throw new Error('Failed to fetch places');
-        }
+        const q = query(collection(db, "locations"), orderBy("name"));
         
-        // Parse the JSON data
-        allPlaces = await response.json();
-        
-        // Initial render of all places
-        renderPlaces(allPlaces);
+        onSnapshot(q, (snapshot) => {
+            allPlaces = [];
+            snapshot.forEach((doc) => {
+                allPlaces.push({ id: doc.id, ...doc.data() });
+            });
+            
+            // Re-filter and render
+            handleFilter();
+        }, (error) => {
+            handleFirestoreError(error, OperationType.LIST, "locations");
+            showErrorUI();
+        });
 
-        // Add event listeners for search input and category dropdown
+        // Add event listeners for search input
         searchInput.addEventListener('input', handleFilter);
-        categoryFilter.addEventListener('change', handleFilter);
     } catch (error) {
         console.error('Error initializing app:', error);
-        // Show an error message if data fails to load
-        resultsContainer.innerHTML = `
-            <div class="no-results">
-                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 16px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                <h3>Error loading places</h3>
-                <p>Please try refreshing the page or check your connection.</p>
-            </div>
-        `;
+        showErrorUI();
     }
+}
+
+function showErrorUI() {
+    resultsContainer.innerHTML = `
+        <div class="no-results">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 16px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <h3>Error loading places</h3>
+            <p>Please try refreshing the page or check your connection.</p>
+        </div>
+    `;
 }
 
 /**
