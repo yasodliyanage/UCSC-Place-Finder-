@@ -1,6 +1,6 @@
 import { 
     db, auth, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot, 
-    signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, handleFirestoreError, OperationType,
+    handleFirestoreError, OperationType,
     signInWithEmailAndPassword, createUserWithEmailAndPassword
 } from './firebase-init.js';
 
@@ -18,12 +18,19 @@ const modalTitle = document.getElementById('modalTitle');
 
 const seedBtn = document.getElementById('seedBtn');
 
+// Previews
+const imageFile = document.getElementById('imageFile');
+const floorPlanFile = document.getElementById('floorPlanFile');
+const imagePreview = document.getElementById('imagePreview');
+const floorPlanPreview = document.getElementById('floorPlanPreview');
+const removeImageBtn = document.getElementById('removeImageBtn');
+const removeFloorPlanBtn = document.getElementById('removeFloorPlanBtn');
+
 let currentPlaces = [];
 
 // Auth State Listener
 onAuthStateChanged(auth, async (user) => {
     if (user) {
-        // Check if admin (for now we trust the security rules, but UI-wise we show content)
         loginSection.style.display = 'none';
         adminContent.style.display = 'block';
         loadPlaces();
@@ -35,16 +42,19 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 async function checkIfEmpty() {
-    const snapshot = await getDocs(collection(db, "locations"));
-    if (snapshot.empty) {
-        seedBtn.style.display = 'block';
-    } else {
-        seedBtn.style.display = 'none';
+    try {
+        const snapshot = await getDocs(collection(db, "locations"));
+        if (snapshot.empty) {
+            seedBtn.style.display = 'block';
+        } else {
+            seedBtn.style.display = 'none';
+        }
+    } catch (error) {
+        console.error("Error checking if empty:", error);
     }
 }
 
 seedBtn.addEventListener('click', async () => {
-    // Removed confirm() as it doesn't work in iframes
     seedBtn.disabled = true;
     seedBtn.textContent = "Seeding... Please wait";
     
@@ -81,14 +91,12 @@ adminLoginForm.addEventListener('submit', async (e) => {
 
     if (u === 'admin' && p === 'admin') {
         try {
-            // Map the simple 'admin'/'admin' to a valid Firebase email/password
             const email = 'admin@ucsc.edu';
             const pass = 'admin123';
             try {
                 await signInWithEmailAndPassword(auth, email, pass);
             } catch (err) {
                 if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-                    // Try creating it if it doesn't exist
                     await createUserWithEmailAndPassword(auth, email, pass);
                 } else {
                     throw err;
@@ -127,7 +135,7 @@ function loadPlaces() {
             renderPlaceItem(place);
         });
     }, (error) => {
-        handleFirestoreError(error, OperationType.LIST, "locations");
+        console.error("Error loading places:", error);
     });
 }
 
@@ -146,7 +154,7 @@ function renderPlaceItem(place) {
     `;
     
     div.querySelector('.edit-btn').addEventListener('click', () => openModal(place));
-    div.querySelector('.delete-btn').addEventListener('click', () => deletePlace(place.id));
+    div.querySelector('.delete-btn').addEventListener('click', () => deletePlace(place));
     
     placesList.appendChild(div);
 }
@@ -157,6 +165,9 @@ cancelBtn.addEventListener('click', closeModal);
 
 function openModal(place = null) {
     placeForm.reset();
+    imagePreview.style.display = 'none';
+    floorPlanPreview.style.display = 'none';
+
     if (place) {
         modalTitle.textContent = 'Edit Location';
         document.getElementById('placeId').value = place.id;
@@ -166,55 +177,218 @@ function openModal(place = null) {
         document.getElementById('category').value = place.category;
         document.getElementById('description').value = place.description;
         document.getElementById('directions').value = place.directions;
+        
+        const imageUrl = place.imageUrl || '';
+        const fpUrl = place.floorPlanUrl || '';
+        
+        document.getElementById('imageUrl').value = imageUrl;
+        document.getElementById('floorPlanUrl').value = fpUrl;
+
+        if (imageUrl) {
+            imagePreview.querySelector('img').src = imageUrl;
+            imagePreview.style.display = 'flex';
+            imagePreview.querySelector('.preview-label').textContent = "Current Photo";
+        }
+        if (fpUrl) {
+            floorPlanPreview.querySelector('img').src = fpUrl;
+            floorPlanPreview.style.display = 'flex';
+            floorPlanPreview.querySelector('.preview-label').textContent = "Current Floor Plan";
+        }
     } else {
         modalTitle.textContent = 'Add New Location';
         document.getElementById('placeId').value = '';
+        document.getElementById('imageUrl').value = '';
+        document.getElementById('floorPlanUrl').value = '';
     }
-    placeModal.style.display = 'flex';
+    placeModal.classList.add('active');
+    document.body.style.overflow = 'hidden';
 }
 
 function closeModal() {
-    placeModal.style.display = 'none';
+    placeModal.classList.remove('active');
+    document.body.style.overflow = '';
 }
+
+/**
+ * Upload file to server and return the URL
+ */
+async function uploadFile(file, folder) {
+    if (!file) return null;
+    
+    const formData = new FormData();
+    formData.append('type', folder);
+    formData.append('file', file);
+
+    try {
+        const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Upload failed');
+        }
+
+        const data = await response.json();
+        return data.url;
+    } catch (error) {
+        console.error(`Error uploading to ${folder}:`, error);
+        throw error;
+    }
+}
+
+/**
+ * Delete file from server
+ */
+async function deleteFromServer(filePath) {
+    if (!filePath || !filePath.startsWith('/uploads/')) return;
+    
+    try {
+        await fetch('/api/delete-file', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filePath })
+        });
+    } catch (error) {
+        console.error("Failed to delete file from server:", error);
+    }
+}
+
+// Preview Logic
+imageFile.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            imagePreview.querySelector('img').src = e.target.result;
+            imagePreview.style.display = 'flex';
+            imagePreview.querySelector('.preview-label').textContent = "New Photo Selected";
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+floorPlanFile.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            floorPlanPreview.querySelector('img').src = e.target.result;
+            floorPlanPreview.style.display = 'flex';
+            floorPlanPreview.querySelector('.preview-label').textContent = "New Floor Plan Selected";
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+// Remove Logic
+removeImageBtn.addEventListener('click', async () => {
+    const currentUrl = document.getElementById('imageUrl').value;
+    if (currentUrl) {
+        // If it's a local upload, we could delete it now, 
+        // but it's safer to wait for form save or just clear reference.
+        // For this task, we delete it immediately from server.
+        await deleteFromServer(currentUrl);
+    }
+    imageFile.value = '';
+    document.getElementById('imageUrl').value = '';
+    imagePreview.style.display = 'none';
+});
+
+removeFloorPlanBtn.addEventListener('click', async () => {
+    const currentUrl = document.getElementById('floorPlanUrl').value;
+    if (currentUrl) {
+        await deleteFromServer(currentUrl);
+    }
+    floorPlanFile.value = '';
+    document.getElementById('floorPlanUrl').value = '';
+    floorPlanPreview.style.display = 'none';
+});
 
 // Form Submission
 placeForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
+    const submitBtn = placeForm.querySelector('button[type="submit"]');
+    const originalBtnText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Uploading & Saving...";
+
     const placeId = document.getElementById('placeId').value;
-    const placeData = {
-        name: document.getElementById('name').value,
-        building: document.getElementById('building').value,
-        floor: document.getElementById('floor').value,
-        category: document.getElementById('category').value,
-        description: document.getElementById('description').value,
-        directions: document.getElementById('directions').value,
-        updatedAt: new Date().toISOString()
-    };
+    const imgFile = imageFile.files[0];
+    const fpFile = floorPlanFile.files[0];
 
     try {
+        let imageUrl = document.getElementById('imageUrl').value;
+        let floorPlanUrl = document.getElementById('floorPlanUrl').value;
+
+        // If new image selected, delete the old one first
+        if (imgFile && imageUrl) {
+            await deleteFromServer(imageUrl);
+            imageUrl = await uploadFile(imgFile, 'locations');
+        } else if (imgFile) {
+            imageUrl = await uploadFile(imgFile, 'locations');
+        }
+
+        if (fpFile && floorPlanUrl) {
+            await deleteFromServer(floorPlanUrl);
+            floorPlanUrl = await uploadFile(fpFile, 'floorplans');
+        } else if (fpFile) {
+            floorPlanUrl = await uploadFile(fpFile, 'floorplans');
+        }
+
+        const placeData = {
+            name: document.getElementById('name').value,
+            building: document.getElementById('building').value,
+            floor: document.getElementById('floor').value,
+            category: document.getElementById('category').value,
+            description: document.getElementById('description').value,
+            directions: document.getElementById('directions').value,
+            imageUrl: imageUrl || "",
+            floorPlanUrl: floorPlanUrl || "",
+            updatedAt: new Date().toISOString()
+        };
+
         if (placeId) {
-            // Update
             await updateDoc(doc(db, "locations", placeId), placeData);
         } else {
-            // Create
             placeData.createdAt = new Date().toISOString();
             await addDoc(collection(db, "locations"), placeData);
         }
         closeModal();
     } catch (error) {
-        handleFirestoreError(error, placeId ? OperationType.UPDATE : OperationType.CREATE, `locations/${placeId || ''}`);
-        console.error("Failed to save location. Check permissions.", error);
+        console.error("Failed to save location:", error);
+        alert(`Failed to save: ${error.message}`);
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalBtnText;
     }
 });
 
 // Delete
-async function deletePlace(id) {
-    // Removed confirm() as it doesn't work in iframes
+async function deletePlace(place) {
+    if (!confirm(`Are you sure you want to delete "${place.name}"?`)) return;
     try {
-        await deleteDoc(doc(db, "locations", id));
+        // Delete images from server first
+        if (place.imageUrl) await deleteFromServer(place.imageUrl);
+        if (place.floorPlanUrl) await deleteFromServer(place.floorPlanUrl);
+        
+        await deleteDoc(doc(db, "locations", place.id));
     } catch (error) {
-        handleFirestoreError(error, OperationType.DELETE, `locations/${id}`);
-        console.error("Failed to delete location.", error);
+        console.error("Failed to delete location:", error);
     }
+}
+
+// Function helper for Auth
+function onAuthStateChanged(auth, callback) {
+    import('./firebase-init.js').then(mod => {
+        mod.onAuthStateChanged(auth, callback);
+    });
+}
+
+function signOut(auth) {
+    import('./firebase-init.js').then(mod => {
+        mod.signOut(auth);
+    });
 }
