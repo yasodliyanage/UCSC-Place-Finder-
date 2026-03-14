@@ -2,6 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot, getDocFromServer } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 const firebaseConfig = {
   "projectId": "restox-ca64a",
@@ -16,6 +17,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 const auth = getAuth(app);
+const storage = getStorage(app);
 
 // Error handling helper
 const OperationType = {
@@ -25,6 +27,7 @@ const OperationType = {
   LIST: 'list',
   GET: 'get',
   WRITE: 'write',
+  UPLOAD: 'upload'
 };
 
 function handleFirestoreError(error, operationType, path) {
@@ -46,7 +49,7 @@ function handleFirestoreError(error, operationType, path) {
     operationType,
     path
   };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  console.error('Firebase Error: ', JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
 }
 
@@ -63,7 +66,8 @@ async function testConnection() {
 testConnection();
 
 export { 
-  db, auth, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot, 
+  db, auth, storage, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot, 
   signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, handleFirestoreError, OperationType,
-  signInWithEmailAndPassword, createUserWithEmailAndPassword
+  signInWithEmailAndPassword, createUserWithEmailAndPassword,
+  ref, uploadBytes, getDownloadURL
 };
